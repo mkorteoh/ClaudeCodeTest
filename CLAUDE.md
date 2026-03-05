@@ -2,14 +2,27 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project
+## Git
 
-This is a minimal browser-based game project. Currently it contains a single-file tic tac toe game (`tictactoe.html`).
+**Commit to git after every change.** After completing any modification — however small — stage the relevant files and create a commit. Then push to GitHub.
 
-## Running
+## Projects
 
-Open any `.html` file directly in a browser — no build step, server, or dependencies required.
+This repository contains two projects:
 
-## Architecture
+### InsuranceDMS (`InsuranceDMS/`)
 
-Each game is a self-contained HTML file with inline CSS and JavaScript. There is no framework, bundler, or external dependency. All logic, styling, and markup live in one file per game.
+A full-stack insurance distribution management system.
+
+**Backend** — `InsuranceDMS/backend/`
+- ASP.NET Core / .NET 6, Clean Architecture (Domain / Application / Infrastructure / API)
+- Entity Framework Core 6 with SQL Server (LocalDB connection string in `appsettings.json`)
+- Run: `dotnet run --project src/InsuranceDMS.API` from `InsuranceDMS/backend/`
+- Swagger UI available at `/swagger` on startup
+- Database is auto-migrated and seeded on first run
+
+**Frontend** — `InsuranceDMS/frontend/insurance-dms/`
+- Angular 17, standalone components, signals, lazy-loaded feature routes
+- Requires Node.js 18+ and Angular CLI 17+
+- Run: `npm install && ng serve` from `InsuranceDMS/frontend/insurance-dms/`
+- Proxies API calls to the backend at `http://localhost:5000`
