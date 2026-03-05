@@ -108,7 +108,7 @@ type WizardStep = 1 | 2 | 3;
             ⚠ <strong>This action is irreversible.</strong> All personnel from absorbed agencies will be transferred to the surviving agency, and absorbed agencies will be marked as merged.
           </div>
           <p>Surviving agency: <strong>{{ preview()?.survivingAgencyName }}</strong></p>
-          <p>Agencies to be absorbed: <strong>{{ preview()!.absorbedAgencies.map(a => a.agencyName).join(', ') }}</strong></p>
+          <p>Agencies to be absorbed: <strong>{{ absorbedAgencyNames() }}</strong></p>
           <p>Personnel to transfer: <strong>{{ preview()?.totalPersonnelToTransfer }}</strong></p>
 
           <div style="display:flex;gap:8px;margin-top:16px">
@@ -192,4 +192,8 @@ export class MergerWizardComponent implements OnInit {
   }
 
   tierLabel(tier: number) { return { 1: 'FMO', 2: 'MGA', 3: 'GA', 4: 'Agent' }[tier] ?? tier; }
+
+  absorbedAgencyNames(): string {
+    return (this.preview()?.absorbedAgencies ?? []).map(a => a.agencyName).join(', ');
+  }
 }
