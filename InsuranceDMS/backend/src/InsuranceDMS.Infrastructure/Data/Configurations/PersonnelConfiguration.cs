@@ -9,7 +9,7 @@ public class PersonnelConfiguration : IEntityTypeConfiguration<Personnel>
     public void Configure(EntityTypeBuilder<Personnel> builder)
     {
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.Id).HasColumnName("PersonnelId").UseIdentityColumn();
+        builder.Property(x => x.Id).HasColumnName("PersonnelId");
         builder.Property(x => x.FirstName).HasMaxLength(100).IsRequired();
         builder.Property(x => x.LastName).HasMaxLength(100).IsRequired();
         builder.Property(x => x.MiddleName).HasMaxLength(100);

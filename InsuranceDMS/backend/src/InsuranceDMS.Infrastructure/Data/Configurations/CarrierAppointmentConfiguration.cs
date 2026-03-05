@@ -9,8 +9,8 @@ public class CarrierAppointmentConfiguration : IEntityTypeConfiguration<CarrierA
     public void Configure(EntityTypeBuilder<CarrierAppointment> builder)
     {
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.Id).HasColumnName("AppointmentId").UseIdentityColumn();
-        builder.Property(x => x.StateCode).HasColumnType("CHAR(2)").IsRequired();
+        builder.Property(x => x.Id).HasColumnName("AppointmentId");
+        builder.Property(x => x.StateCode).HasMaxLength(2).IsRequired();
         builder.Property(x => x.AppointmentStatus).HasMaxLength(50);
         builder.Property(x => x.CreatedBy).HasMaxLength(100);
         builder.Property(x => x.ModifiedBy).HasMaxLength(100);

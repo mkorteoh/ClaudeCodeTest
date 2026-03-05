@@ -17,8 +17,7 @@ public static class DependencyInjection
 
         services.AddDbContext<AppDbContext>((sp, options) =>
         {
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"),
-                sql => sql.EnableRetryOnFailure());
+            options.UseSqlite(configuration.GetConnectionString("DefaultConnection"));
             options.AddInterceptors(
                 sp.GetRequiredService<AuditInterceptor>(),
                 sp.GetRequiredService<SoftDeleteInterceptor>());

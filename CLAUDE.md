@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Git
 
-**Commit to git after every change.** After completing any modification — however small — stage the relevant files and create a commit. Then push to GitHub.
+**Commit to git after every change.** After completing any modification — however small — stage the relevant files and create a commit with a detailed summarization of changes. Then push to GitHub.
 
 ## Projects
 

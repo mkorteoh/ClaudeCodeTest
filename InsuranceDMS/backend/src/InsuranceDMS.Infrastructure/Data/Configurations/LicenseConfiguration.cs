@@ -9,8 +9,8 @@ public class LicenseConfiguration : IEntityTypeConfiguration<License>
     public void Configure(EntityTypeBuilder<License> builder)
     {
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.Id).HasColumnName("LicenseId").UseIdentityColumn();
-        builder.Property(x => x.StateCode).HasColumnType("CHAR(2)").IsRequired();
+        builder.Property(x => x.Id).HasColumnName("LicenseId");
+        builder.Property(x => x.StateCode).HasMaxLength(2).IsRequired();
         builder.Property(x => x.LicenseNumber).HasMaxLength(50).IsRequired();
         builder.Property(x => x.CreatedBy).HasMaxLength(100);
         builder.Property(x => x.ModifiedBy).HasMaxLength(100);

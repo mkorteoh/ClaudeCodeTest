@@ -9,7 +9,7 @@ public class MergerConfiguration : IEntityTypeConfiguration<Merger>
     public void Configure(EntityTypeBuilder<Merger> builder)
     {
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.Id).HasColumnName("MergerId").UseIdentityColumn();
+        builder.Property(x => x.Id).HasColumnName("MergerId");
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(50);
         builder.Property(x => x.InitiatedBy).HasMaxLength(100);
         builder.Property(x => x.ExecutedBy).HasMaxLength(100);
@@ -29,7 +29,7 @@ public class MergerParticipantConfiguration : IEntityTypeConfiguration<MergerPar
     public void Configure(EntityTypeBuilder<MergerParticipant> builder)
     {
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.Id).HasColumnName("ParticipantId").UseIdentityColumn();
+        builder.Property(x => x.Id).HasColumnName("ParticipantId");
         builder.Property(x => x.CreatedBy).HasMaxLength(100);
         builder.Property(x => x.ModifiedBy).HasMaxLength(100);
 
@@ -52,7 +52,7 @@ public class EntityLineageConfiguration : IEntityTypeConfiguration<EntityLineage
     public void Configure(EntityTypeBuilder<EntityLineage> builder)
     {
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.Id).HasColumnName("LineageId").UseIdentityColumn();
+        builder.Property(x => x.Id).HasColumnName("LineageId");
         builder.Property(x => x.EntityType).HasMaxLength(50).IsRequired();
         builder.Property(x => x.Action).HasMaxLength(50);
         builder.Property(x => x.RecordedBy).HasMaxLength(100);
