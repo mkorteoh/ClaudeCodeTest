@@ -47,11 +47,14 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": { "buildTarget": "insurance-dms:build:production" },
-            "development": { "buildTarget": "insurance-dms:build:development" }
+            "development": { "buildTarget": "insurance-dms:build:development", "proxyConfig": "proxy.conf.json" }
           },
           "defaultConfiguration": "development"
         }
       }
     }
+  },
+  "cli": {
+    "analytics": false
   }
 }
