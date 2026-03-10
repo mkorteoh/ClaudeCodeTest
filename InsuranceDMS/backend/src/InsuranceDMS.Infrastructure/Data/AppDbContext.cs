@@ -16,6 +16,8 @@ public class AppDbContext : DbContext
     public DbSet<Carrier> Carriers => Set<Carrier>();
     public DbSet<State> States => Set<State>();
     public DbSet<LicenseType> LicenseTypes => Set<LicenseType>();
+    public DbSet<AgencyLocation> AgencyLocations => Set<AgencyLocation>();
+    public DbSet<PersonnelLocation> PersonnelLocations => Set<PersonnelLocation>();
     public DbSet<Merger> Mergers => Set<Merger>();
     public DbSet<MergerParticipant> MergerParticipants => Set<MergerParticipant>();
     public DbSet<EntityLineage> EntityLineages => Set<EntityLineage>();
@@ -28,6 +30,7 @@ public class AppDbContext : DbContext
 
         // Global soft-delete filter
         modelBuilder.Entity<Agency>().HasQueryFilter(x => !x.IsDeleted);
+        modelBuilder.Entity<AgencyLocation>().HasQueryFilter(x => !x.IsDeleted);
         modelBuilder.Entity<Personnel>().HasQueryFilter(x => !x.IsDeleted);
         modelBuilder.Entity<Producer>().HasQueryFilter(x => !x.IsDeleted);
         modelBuilder.Entity<Carrier>().HasQueryFilter(x => !x.IsDeleted);

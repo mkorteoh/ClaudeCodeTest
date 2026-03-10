@@ -11,6 +11,7 @@ public class UnitOfWork : IUnitOfWork, IDisposable
 
     public UnitOfWork(AppDbContext db,
         IAgencyRepository agencies,
+        IAgencyLocationRepository agencyLocations,
         IPersonnelRepository personnel,
         IProducerRepository producers,
         ILicenseRepository licenses,
@@ -19,6 +20,7 @@ public class UnitOfWork : IUnitOfWork, IDisposable
     {
         _db = db;
         Agencies = agencies;
+        AgencyLocations = agencyLocations;
         Personnel = personnel;
         Producers = producers;
         Licenses = licenses;
@@ -27,6 +29,7 @@ public class UnitOfWork : IUnitOfWork, IDisposable
     }
 
     public IAgencyRepository Agencies { get; }
+    public IAgencyLocationRepository AgencyLocations { get; }
     public IPersonnelRepository Personnel { get; }
     public IProducerRepository Producers { get; }
     public ILicenseRepository Licenses { get; }

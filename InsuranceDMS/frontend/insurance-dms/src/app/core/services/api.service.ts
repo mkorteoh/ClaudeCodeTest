@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
-import { ApiResponse, Agency, AgencySummary, Personnel, Producer, License, Appointment, Merger, MergerPreview, EntityLineage, Carrier, State, LicenseType } from '../models/api.models';
+import { ApiResponse, Agency, AgencyLocation, AgencySummary, Personnel, PersonnelLocation, Producer, License, Appointment, Merger, MergerPreview, EntityLineage, Carrier, State, LicenseType } from '../models/api.models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -27,14 +27,43 @@ export class ApiService {
   getAgencyLineage(id: number): Observable<ApiResponse<EntityLineage[]>> {
     return this.http.get<ApiResponse<EntityLineage[]>>(`${this.base}/agencies/${id}/lineage`);
   }
-  createAgency(body: Partial<Agency>): Observable<ApiResponse<Agency>> {
+  createAgency(body: Record<string, any>): Observable<ApiResponse<Agency>> {
     return this.http.post<ApiResponse<Agency>>(`${this.base}/agencies`, body);
   }
-  updateAgency(id: number, body: Partial<Agency>): Observable<ApiResponse<Agency>> {
+  updateAgency(id: number, body: Record<string, any>): Observable<ApiResponse<Agency>> {
     return this.http.put<ApiResponse<Agency>>(`${this.base}/agencies/${id}`, body);
   }
   deleteAgency(id: number): Observable<void> {
     return this.http.delete<void>(`${this.base}/agencies/${id}`);
+  }
+
+  // Agency Locations
+  getAgencyLocations(agencyId: number): Observable<ApiResponse<AgencyLocation[]>> {
+    return this.http.get<ApiResponse<AgencyLocation[]>>(`${this.base}/agency-locations`, { params: this.toParams({ agencyId }) });
+  }
+  getAgencyLocation(id: number): Observable<ApiResponse<AgencyLocation>> {
+    return this.http.get<ApiResponse<AgencyLocation>>(`${this.base}/agency-locations/${id}`);
+  }
+  createAgencyLocation(body: Record<string, any>): Observable<ApiResponse<AgencyLocation>> {
+    return this.http.post<ApiResponse<AgencyLocation>>(`${this.base}/agency-locations`, body);
+  }
+  updateAgencyLocation(id: number, body: Record<string, any>): Observable<ApiResponse<AgencyLocation>> {
+    return this.http.put<ApiResponse<AgencyLocation>>(`${this.base}/agency-locations/${id}`, body);
+  }
+  deleteAgencyLocation(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/agency-locations/${id}`);
+  }
+  setAgencyLocationCorporate(id: number): Observable<ApiResponse<AgencyLocation>> {
+    return this.http.post<ApiResponse<AgencyLocation>>(`${this.base}/agency-locations/${id}/set-corporate`, {});
+  }
+  getLocationPersonnel(locationId: number): Observable<ApiResponse<PersonnelLocation[]>> {
+    return this.http.get<ApiResponse<PersonnelLocation[]>>(`${this.base}/agency-locations/${locationId}/personnel`);
+  }
+  assignPersonnelToLocation(locationId: number, body: { personnelId: number; assignedDate?: string }): Observable<ApiResponse<PersonnelLocation>> {
+    return this.http.post<ApiResponse<PersonnelLocation>>(`${this.base}/agency-locations/${locationId}/personnel`, body);
+  }
+  removePersonnelFromLocation(locationId: number, personnelId: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/agency-locations/${locationId}/personnel/${personnelId}`);
   }
 
   // Personnel
@@ -109,8 +138,11 @@ export class ApiService {
   getMergerLineage(id: number): Observable<ApiResponse<EntityLineage[]>> {
     return this.http.get<ApiResponse<EntityLineage[]>>(`${this.base}/mergers/${id}/lineage`);
   }
-  createMerger(body: { survivingAgencyId: number; absorbedAgencyIds: number[]; notes?: string }): Observable<ApiResponse<Merger>> {
+  createMerger(body: { survivingAgencyId: number; absorbedAgencyIds: number[]; notes?: string; mergerType?: string }): Observable<ApiResponse<Merger>> {
     return this.http.post<ApiResponse<Merger>>(`${this.base}/mergers`, body);
+  }
+  createLocationMerger(body: { acquiringAgencyId: number; absorbedLocationId: number; notes?: string }): Observable<ApiResponse<Merger>> {
+    return this.http.post<ApiResponse<Merger>>(`${this.base}/mergers/location`, body);
   }
   executeMerger(id: number): Observable<ApiResponse<Merger>> {
     return this.http.post<ApiResponse<Merger>>(`${this.base}/mergers/${id}/execute`, {});

@@ -32,6 +32,7 @@ public class MergerRepository : IMergerRepository
         await _db.Mergers
             .Include(m => m.SurvivingAgency)
             .Include(m => m.Participants).ThenInclude(p => p.AbsorbedAgency)
+            .Include(m => m.Participants).ThenInclude(p => p.AbsorbedLocation)
             .FirstOrDefaultAsync(m => m.Id == id, ct);
 
     public async Task<List<EntityLineage>> GetLineageAsync(int mergerId, CancellationToken ct = default) =>

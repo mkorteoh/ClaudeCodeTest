@@ -56,38 +56,60 @@ import { State, AgencySummary } from '../../../core/models/api.models';
         </div>
 
         <div class="card" style="margin-bottom:16px">
-          <div class="card-header">Contact Information</div>
-          <div class="form-row">
-            <div class="form-group"><label class="form-label">Phone</label><input class="form-control" formControlName="phone" /></div>
-            <div class="form-group"><label class="form-label">Email</label><input class="form-control" formControlName="email" /></div>
-            <div class="form-group"><label class="form-label">Website</label><input class="form-control" formControlName="website" /></div>
-          </div>
-        </div>
-
-        <div class="card" style="margin-bottom:16px">
-          <div class="card-header">Address</div>
-          <div class="form-row">
-            <div class="form-group"><label class="form-label">Address Line 1</label><input class="form-control" formControlName="addressLine1" /></div>
-            <div class="form-group"><label class="form-label">Address Line 2</label><input class="form-control" formControlName="addressLine2" /></div>
-            <div class="form-group"><label class="form-label">City</label><input class="form-control" formControlName="city" /></div>
-            <div class="form-group">
-              <label class="form-label">State</label>
-              <select class="form-control" formControlName="stateCode">
-                <option value="">Select state...</option>
-                @for (s of states(); track s.stateCode) {
-                  <option [value]="s.stateCode">{{ s.stateName }}</option>
-                }
-              </select>
-            </div>
-            <div class="form-group"><label class="form-label">Zip Code</label><input class="form-control" formControlName="zipCode" /></div>
-            <div class="form-group"><label class="form-label">County</label><input class="form-control" formControlName="county" /></div>
-          </div>
-        </div>
-
-        <div class="card" style="margin-bottom:16px">
           <div class="card-header">Notes</div>
           <textarea class="form-control" formControlName="notes" rows="3"></textarea>
         </div>
+
+        @if (!isEdit()) {
+          <div class="card" style="margin-bottom:16px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+              <div class="card-header" style="margin:0">Initial Location</div>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+                <input type="checkbox" [checked]="addInitialLocation()" (change)="addInitialLocation.set(!addInitialLocation())" />
+                Add corporate office location now
+              </label>
+            </div>
+            @if (addInitialLocation()) {
+              <div formGroupName="initialLocation">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">Location Name *</label>
+                    <input class="form-control" formControlName="locationName" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Phone</label>
+                    <input class="form-control" formControlName="phone" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input class="form-control" formControlName="email" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Address Line 1</label>
+                    <input class="form-control" formControlName="addressLine1" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">City</label>
+                    <input class="form-control" formControlName="city" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">State</label>
+                    <select class="form-control" formControlName="stateCode">
+                      <option value="">Select state...</option>
+                      @for (s of states(); track s.stateCode) {
+                        <option [value]="s.stateCode">{{ s.stateName }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Zip Code</label>
+                    <input class="form-control" formControlName="zipCode" />
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
 
         <div style="display:flex;gap:8px">
           <button class="btn btn-primary" type="submit" [disabled]="saving()">
@@ -111,6 +133,7 @@ export class AgencyFormComponent implements OnInit {
   states = signal<State[]>([]);
   agencies = signal<AgencySummary[]>([]);
   editId = signal<number | null>(null);
+  addInitialLocation = signal(false);
 
   form = this.fb.group({
     agencyName: ['', Validators.required],
@@ -118,10 +141,13 @@ export class AgencyFormComponent implements OnInit {
     taxId: [''],
     agencyTier: [1, Validators.required],
     parentAgencyId: [null as number | null],
-    phone: [''], email: [''], website: [''],
-    addressLine1: [''], addressLine2: [''], city: [''],
-    stateCode: [''], zipCode: [''], county: [''],
-    notes: ['']
+    notes: [''],
+    initialLocation: this.fb.group({
+      locationName: [''],
+      phone: [''], email: [''], website: [''],
+      addressLine1: [''], addressLine2: [''], city: [''],
+      stateCode: [''], zipCode: [''], county: ['']
+    })
   });
 
   ngOnInit() {
@@ -137,10 +163,7 @@ export class AgencyFormComponent implements OnInit {
         this.form.patchValue({
           agencyName: a.agencyName, npn: a.npn ?? '', taxId: a.taxId ?? '',
           agencyTier: a.agencyTier, parentAgencyId: a.parentAgencyId ?? null,
-          phone: a.phone ?? '', email: a.email ?? '', website: a.website ?? '',
-          addressLine1: a.addressLine1 ?? '', addressLine2: a.addressLine2 ?? '',
-          city: a.city ?? '', stateCode: a.stateCode ?? '', zipCode: a.zipCode ?? '',
-          county: a.county ?? '', notes: a.notes ?? ''
+          notes: a.notes ?? ''
         });
       });
     }
@@ -151,11 +174,26 @@ export class AgencyFormComponent implements OnInit {
     this.saving.set(true);
     this.error.set('');
     const val = this.form.value;
-    const body = { ...val, agencyTier: Number(val.agencyTier) };
+    const body: Record<string, any> = {
+      agencyName: val.agencyName,
+      npn: val.npn,
+      taxId: val.taxId,
+      agencyTier: Number(val.agencyTier),
+      parentAgencyId: val.parentAgencyId || null,
+      notes: val.notes
+    };
+
+    if (!this.isEdit() && this.addInitialLocation() && val.initialLocation?.locationName) {
+      body['initialLocation'] = { ...val.initialLocation, isCorporateOffice: true };
+    }
+
+    if (this.isEdit()) {
+      body['isActive'] = true;
+    }
 
     const req = this.isEdit()
-      ? this.api.updateAgency(this.editId()!, body as any)
-      : this.api.createAgency(body as any);
+      ? this.api.updateAgency(this.editId()!, body)
+      : this.api.createAgency(body);
 
     req.subscribe({
       next: r => this.router.navigate(['/agencies', r.data.id]),

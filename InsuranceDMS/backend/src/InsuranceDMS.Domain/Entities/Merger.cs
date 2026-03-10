@@ -13,6 +13,8 @@ public class Merger : BaseEntity
     public string? ExecutedBy { get; set; }
     public string? Notes { get; set; }
 
+    public MergerType MergerType { get; set; } = MergerType.Agency;
+
     public Agency SurvivingAgency { get; set; } = null!;
     public ICollection<MergerParticipant> Participants { get; set; } = new List<MergerParticipant>();
     public ICollection<EntityLineage> Lineage { get; set; } = new List<EntityLineage>();

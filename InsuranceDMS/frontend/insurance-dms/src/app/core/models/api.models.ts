@@ -28,14 +28,16 @@ export enum MergerStatus {
   Cancelled = 'Cancelled'
 }
 
-export interface Agency {
+export enum MergerType {
+  Agency = 'Agency',
+  Location = 'Location'
+}
+
+export interface AgencyLocation {
   id: number;
-  agencyName: string;
-  npn?: string;
-  taxId?: string;
-  agencyTier: AgencyTier;
-  parentAgencyId?: number;
-  parentAgencyName?: string;
+  agencyId: number;
+  locationName: string;
+  isCorporateOffice: boolean;
   phone?: string;
   email?: string;
   website?: string;
@@ -46,12 +48,39 @@ export interface Agency {
   zipCode?: string;
   county?: string;
   isActive: boolean;
+  isMerged: boolean;
+  originalAgencyId?: number;
+  acquiredAt?: string;
+  personnelCount: number;
+  createdAt: string;
+}
+
+export interface PersonnelLocation {
+  id: number;
+  personnelId: number;
+  personnelName: string;
+  agencyLocationId: number;
+  locationName?: string;
+  assignedDate: string;
+}
+
+export interface Agency {
+  id: number;
+  agencyName: string;
+  npn?: string;
+  taxId?: string;
+  agencyTier: AgencyTier;
+  parentAgencyId?: number;
+  parentAgencyName?: string;
+  isActive: boolean;
   notes?: string;
   isMerged: boolean;
   mergedIntoId?: number;
   mergedAt?: string;
   createdAt: string;
   modifiedAt?: string;
+  corporateStateCode?: string;
+  locations: AgencyLocation[];
 }
 
 export interface AgencySummary {
@@ -61,7 +90,7 @@ export interface AgencySummary {
   agencyTier: AgencyTier;
   isActive: boolean;
   isMerged: boolean;
-  stateCode?: string;
+  corporateStateCode?: string;
   parentAgencyId?: number;
 }
 
@@ -124,6 +153,7 @@ export interface Merger {
   survivingAgencyId: number;
   survivingAgencyName?: string;
   status: MergerStatus;
+  mergerType: MergerType;
   initiatedBy?: string;
   initiatedAt: string;
   executedAt?: string;
@@ -136,6 +166,8 @@ export interface MergerParticipant {
   id: number;
   absorbedAgencyId: number;
   absorbedAgencyName?: string;
+  absorbedLocationId?: number;
+  absorbedLocationName?: string;
   personnelTransferred: number;
 }
 
@@ -144,6 +176,7 @@ export interface MergerPreview {
   survivingAgencyId: number;
   survivingAgencyName?: string;
   absorbedAgencies: AbsorbedAgencyPreview[];
+  absorbedLocations: AbsorbedLocationPreview[];
   conflicts: string[];
   totalPersonnelToTransfer: number;
 }
@@ -156,6 +189,14 @@ export interface AbsorbedAgencyPreview {
   licenseCount: number;
   appointmentCount: number;
   duplicateNPNs: string[];
+}
+
+export interface AbsorbedLocationPreview {
+  locationId: number;
+  locationName: string;
+  owningAgencyId: number;
+  owningAgencyName: string;
+  personnelCount: number;
 }
 
 export interface EntityLineage {

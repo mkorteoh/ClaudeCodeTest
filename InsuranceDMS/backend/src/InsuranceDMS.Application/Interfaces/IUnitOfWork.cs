@@ -3,6 +3,7 @@ namespace InsuranceDMS.Application.Interfaces;
 public interface IUnitOfWork
 {
     IAgencyRepository Agencies { get; }
+    IAgencyLocationRepository AgencyLocations { get; }
     IPersonnelRepository Personnel { get; }
     IProducerRepository Producers { get; }
     ILicenseRepository Licenses { get; }

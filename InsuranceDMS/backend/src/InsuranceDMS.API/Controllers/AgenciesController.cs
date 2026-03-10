@@ -71,14 +71,37 @@ public class AgenciesController : ControllerBase
         var agency = new Agency
         {
             AgencyName = dto.AgencyName, NPN = dto.NPN, TaxId = dto.TaxId, AgencyTier = dto.AgencyTier,
-            ParentAgencyId = dto.ParentAgencyId, Phone = dto.Phone, Email = dto.Email, Website = dto.Website,
-            AddressLine1 = dto.AddressLine1, AddressLine2 = dto.AddressLine2, City = dto.City,
-            StateCode = dto.StateCode, ZipCode = dto.ZipCode, County = dto.County, Notes = dto.Notes,
+            ParentAgencyId = dto.ParentAgencyId, Notes = dto.Notes,
             IsActive = true, CreatedBy = "system"
         };
         _uow.Agencies.Add(agency);
         await _uow.SaveChangesAsync(ct);
-        return CreatedAtAction(nameof(GetById), new { id = agency.Id }, ApiResponse<AgencyDto>.Success(MapDto(agency)));
+
+        if (dto.InitialLocation != null)
+        {
+            var location = new AgencyLocation
+            {
+                AgencyId = agency.Id,
+                LocationName = dto.InitialLocation.LocationName,
+                IsCorporateOffice = true,
+                Phone = dto.InitialLocation.Phone,
+                Email = dto.InitialLocation.Email,
+                Website = dto.InitialLocation.Website,
+                AddressLine1 = dto.InitialLocation.AddressLine1,
+                AddressLine2 = dto.InitialLocation.AddressLine2,
+                City = dto.InitialLocation.City,
+                StateCode = dto.InitialLocation.StateCode,
+                ZipCode = dto.InitialLocation.ZipCode,
+                County = dto.InitialLocation.County,
+                IsActive = true,
+                CreatedBy = "system"
+            };
+            _uow.AgencyLocations.Add(location);
+            await _uow.SaveChangesAsync(ct);
+        }
+
+        var created = await _uow.Agencies.GetByIdAsync(agency.Id, ct);
+        return CreatedAtAction(nameof(GetById), new { id = agency.Id }, ApiResponse<AgencyDto>.Success(MapDto(created!)));
     }
 
     [HttpPut("{id:int}")]
@@ -91,10 +114,7 @@ public class AgenciesController : ControllerBase
 
         agency.AgencyName = dto.AgencyName; agency.NPN = dto.NPN; agency.TaxId = dto.TaxId;
         agency.AgencyTier = dto.AgencyTier; agency.ParentAgencyId = dto.ParentAgencyId;
-        agency.Phone = dto.Phone; agency.Email = dto.Email; agency.Website = dto.Website;
-        agency.AddressLine1 = dto.AddressLine1; agency.AddressLine2 = dto.AddressLine2;
-        agency.City = dto.City; agency.StateCode = dto.StateCode; agency.ZipCode = dto.ZipCode;
-        agency.County = dto.County; agency.Notes = dto.Notes; agency.IsActive = dto.IsActive;
+        agency.Notes = dto.Notes; agency.IsActive = dto.IsActive;
         agency.ModifiedBy = "system";
 
         _uow.Agencies.Update(agency);
@@ -129,20 +149,43 @@ public class AgenciesController : ControllerBase
         return NoContent();
     }
 
-    private static AgencySummaryDto MapSummary(Agency a) => new()
+    private static AgencySummaryDto MapSummary(Agency a)
     {
-        Id = a.Id, AgencyName = a.AgencyName, NPN = a.NPN, AgencyTier = a.AgencyTier,
-        IsActive = a.IsActive, IsMerged = a.IsMerged, StateCode = a.StateCode, ParentAgencyId = a.ParentAgencyId
-    };
+        var corpOffice = a.Locations?.FirstOrDefault(l => l.IsCorporateOffice);
+        return new()
+        {
+            Id = a.Id, AgencyName = a.AgencyName, NPN = a.NPN, AgencyTier = a.AgencyTier,
+            IsActive = a.IsActive, IsMerged = a.IsMerged,
+            CorporateStateCode = corpOffice?.StateCode,
+            ParentAgencyId = a.ParentAgencyId
+        };
+    }
 
-    private static AgencyDto MapDto(Agency a) => new()
+    private static AgencyDto MapDto(Agency a)
     {
-        Id = a.Id, AgencyName = a.AgencyName, NPN = a.NPN, TaxId = a.TaxId, AgencyTier = a.AgencyTier,
-        ParentAgencyId = a.ParentAgencyId, ParentAgencyName = a.ParentAgency?.AgencyName,
-        Phone = a.Phone, Email = a.Email, Website = a.Website, AddressLine1 = a.AddressLine1,
-        AddressLine2 = a.AddressLine2, City = a.City, StateCode = a.StateCode, ZipCode = a.ZipCode,
-        County = a.County, IsActive = a.IsActive, Notes = a.Notes, IsMerged = a.IsMerged,
-        MergedIntoId = a.MergedIntoId, MergedAt = a.MergedAt, CreatedAt = a.CreatedAt, ModifiedAt = a.ModifiedAt
+        var corpOffice = a.Locations?.FirstOrDefault(l => l.IsCorporateOffice);
+        return new()
+        {
+            Id = a.Id, AgencyName = a.AgencyName, NPN = a.NPN, TaxId = a.TaxId, AgencyTier = a.AgencyTier,
+            ParentAgencyId = a.ParentAgencyId, ParentAgencyName = a.ParentAgency?.AgencyName,
+            IsActive = a.IsActive, Notes = a.Notes, IsMerged = a.IsMerged,
+            MergedIntoId = a.MergedIntoId, MergedAt = a.MergedAt,
+            CreatedAt = a.CreatedAt, ModifiedAt = a.ModifiedAt,
+            CorporateStateCode = corpOffice?.StateCode,
+            Locations = a.Locations?.Select(MapLocation).ToList() ?? new()
+        };
+    }
+
+    internal static AgencyLocationDto MapLocation(AgencyLocation l) => new()
+    {
+        Id = l.Id, AgencyId = l.AgencyId, LocationName = l.LocationName, IsCorporateOffice = l.IsCorporateOffice,
+        Phone = l.Phone, Email = l.Email, Website = l.Website,
+        AddressLine1 = l.AddressLine1, AddressLine2 = l.AddressLine2, City = l.City,
+        StateCode = l.StateCode, ZipCode = l.ZipCode, County = l.County,
+        IsActive = l.IsActive, IsMerged = l.IsMerged, OriginalAgencyId = l.OriginalAgencyId,
+        AcquiredAt = l.AcquiredAt,
+        PersonnelCount = l.PersonnelLocations?.Count ?? 0,
+        CreatedAt = l.CreatedAt
     };
 
     private static PersonnelDto MapPersonnel(Personnel p) => new()

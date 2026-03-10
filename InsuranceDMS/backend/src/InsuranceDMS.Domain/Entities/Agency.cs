@@ -11,19 +11,6 @@ public class Agency : AuditableEntity
     public AgencyTier AgencyTier { get; set; }
     public int? ParentAgencyId { get; set; }
 
-    // Contact
-    public string? Phone { get; set; }
-    public string? Email { get; set; }
-    public string? Website { get; set; }
-
-    // Location
-    public string? AddressLine1 { get; set; }
-    public string? AddressLine2 { get; set; }
-    public string? City { get; set; }
-    public string? StateCode { get; set; }
-    public string? ZipCode { get; set; }
-    public string? County { get; set; }
-
     // Status
     public bool IsActive { get; set; } = true;
     public string? Notes { get; set; }
@@ -38,5 +25,5 @@ public class Agency : AuditableEntity
     public ICollection<Agency> ChildAgencies { get; set; } = new List<Agency>();
     public Agency? MergedIntoAgency { get; set; }
     public ICollection<Personnel> Personnel { get; set; } = new List<Personnel>();
-    public State? State { get; set; }
+    public ICollection<AgencyLocation> Locations { get; set; } = new List<AgencyLocation>();
 }

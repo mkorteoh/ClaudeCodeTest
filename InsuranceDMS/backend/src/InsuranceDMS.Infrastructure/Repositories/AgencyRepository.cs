@@ -12,14 +12,17 @@ public class AgencyRepository : IAgencyRepository
 
     public async Task<(List<Agency> Items, int TotalCount)> GetListAsync(AgencyFilter filter, CancellationToken ct = default)
     {
-        var q = _db.Agencies.Include(a => a.ParentAgency).AsQueryable();
+        var q = _db.Agencies
+            .Include(a => a.ParentAgency)
+            .Include(a => a.Locations)
+            .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(filter.Search))
             q = q.Where(a => a.AgencyName.Contains(filter.Search) || (a.NPN != null && a.NPN.Contains(filter.Search)));
         if (filter.Tier.HasValue)
             q = q.Where(a => (byte)a.AgencyTier == filter.Tier.Value);
         if (!string.IsNullOrWhiteSpace(filter.State))
-            q = q.Where(a => a.StateCode == filter.State);
+            q = q.Where(a => a.Locations.Any(l => l.IsCorporateOffice && l.StateCode == filter.State));
         if (filter.IsActive.HasValue)
             q = q.Where(a => a.IsActive == filter.IsActive.Value);
         if (filter.ParentId.HasValue)
@@ -38,13 +41,13 @@ public class AgencyRepository : IAgencyRepository
         await _db.Agencies
             .Include(a => a.ParentAgency)
             .Include(a => a.ChildAgencies)
-            .Include(a => a.State)
+            .Include(a => a.Locations).ThenInclude(l => l.PersonnelLocations)
             .FirstOrDefaultAsync(a => a.Id == id, ct);
 
     public async Task<List<Agency>> GetHierarchyAsync(int id, CancellationToken ct = default)
     {
         // Load all agencies and build tree in memory
-        var all = await _db.Agencies.ToListAsync(ct);
+        var all = await _db.Agencies.Include(a => a.Locations).ToListAsync(ct);
         var result = new List<Agency>();
         // Ancestors
         var current = all.FirstOrDefault(a => a.Id == id);
@@ -72,7 +75,10 @@ public class AgencyRepository : IAgencyRepository
     }
 
     public async Task<List<Agency>> GetChildrenAsync(int id, CancellationToken ct = default) =>
-        await _db.Agencies.Where(a => a.ParentAgencyId == id).ToListAsync(ct);
+        await _db.Agencies
+            .Include(a => a.Locations)
+            .Where(a => a.ParentAgencyId == id)
+            .ToListAsync(ct);
 
     public async Task<bool> NpnExistsAsync(string npn, int? excludeId, CancellationToken ct = default) =>
         await _db.Agencies.AnyAsync(a => a.NPN == npn && (!excludeId.HasValue || a.Id != excludeId.Value), ct);

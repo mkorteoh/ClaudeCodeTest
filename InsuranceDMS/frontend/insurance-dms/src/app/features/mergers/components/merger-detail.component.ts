@@ -2,7 +2,7 @@ import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
-import { Merger, EntityLineage } from '../../../core/models/api.models';
+import { Merger, EntityLineage, MergerType } from '../../../core/models/api.models';
 
 @Component({
   selector: 'app-merger-detail',
@@ -14,13 +14,17 @@ import { Merger, EntityLineage } from '../../../core/models/api.models';
         <div class="breadcrumb"><a routerLink="/mergers">Mergers</a> / Merger #{{ merger()!.id }}</div>
         <div class="page-header">
           <h1>Merger #{{ merger()!.id }}</h1>
-          <span [class]="statusBadge(merger()!.status)" style="font-size:14px;padding:6px 14px">{{ merger()!.status }}</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:13px;padding:4px 10px;border-radius:12px;background:#e5e7eb;color:#374151">{{ merger()!.mergerType }}</span>
+            <span [class]="statusBadge(merger()!.status)" style="font-size:14px;padding:6px 14px">{{ merger()!.status }}</span>
+          </div>
         </div>
 
         <div class="card" style="margin-bottom:16px">
           <div class="card-header">Summary</div>
           <div class="form-row">
-            <div><div class="form-label">Surviving Agency</div><a routerLink="/agencies/{{ merger()!.survivingAgencyId }}">{{ merger()!.survivingAgencyName }}</a></div>
+            <div><div class="form-label">Surviving/Acquiring Agency</div><a routerLink="/agencies/{{ merger()!.survivingAgencyId }}">{{ merger()!.survivingAgencyName }}</a></div>
+            <div><div class="form-label">Type</div><div>{{ merger()!.mergerType }}</div></div>
             <div><div class="form-label">Initiated By</div><div>{{ merger()!.initiatedBy || '—' }}</div></div>
             <div><div class="form-label">Initiated At</div><div>{{ merger()!.initiatedAt | date:'medium' }}</div></div>
             <div><div class="form-label">Executed At</div><div>{{ (merger()!.executedAt | date:'medium') || '—' }}</div></div>
@@ -29,13 +33,29 @@ import { Merger, EntityLineage } from '../../../core/models/api.models';
         </div>
 
         <div class="card" style="margin-bottom:16px">
-          <div class="card-header">Absorbed Agencies</div>
+          <div class="card-header">
+            @if (merger()!.mergerType === MergerType.Location) { Acquired Location } @else { Absorbed Agencies }
+          </div>
           <table>
-            <thead><tr><th>Agency</th><th>Personnel Transferred</th></tr></thead>
+            <thead>
+              <tr>
+                @if (merger()!.mergerType === MergerType.Location) {
+                  <th>Location</th><th>From Agency</th>
+                } @else {
+                  <th>Agency</th>
+                }
+                <th>Personnel Transferred</th>
+              </tr>
+            </thead>
             <tbody>
               @for (p of merger()!.participants; track p.id) {
                 <tr>
-                  <td><a routerLink="/agencies/{{ p.absorbedAgencyId }}">{{ p.absorbedAgencyName }}</a></td>
+                  @if (merger()!.mergerType === MergerType.Location) {
+                    <td>{{ p.absorbedLocationName || '—' }}</td>
+                    <td><a routerLink="/agencies/{{ p.absorbedAgencyId }}">{{ p.absorbedAgencyName }}</a></td>
+                  } @else {
+                    <td><a routerLink="/agencies/{{ p.absorbedAgencyId }}">{{ p.absorbedAgencyName }}</a></td>
+                  }
                   <td>{{ p.personnelTransferred }}</td>
                 </tr>
               }
@@ -76,6 +96,7 @@ export class MergerDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   merger = signal<Merger | null>(null);
   lineage = signal<EntityLineage[]>([]);
+  readonly MergerType = MergerType;
 
   ngOnInit() {
     const id = Number(this.route.snapshot.paramMap.get('id'));

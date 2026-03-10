@@ -8,6 +8,7 @@ public class MergerDto
     public int SurvivingAgencyId { get; set; }
     public string? SurvivingAgencyName { get; set; }
     public MergerStatus Status { get; set; }
+    public MergerType MergerType { get; set; }
     public string? InitiatedBy { get; set; }
     public DateTime InitiatedAt { get; set; }
     public DateTime? ExecutedAt { get; set; }
@@ -21,6 +22,8 @@ public class MergerParticipantDto
     public int Id { get; set; }
     public int AbsorbedAgencyId { get; set; }
     public string? AbsorbedAgencyName { get; set; }
+    public int? AbsorbedLocationId { get; set; }
+    public string? AbsorbedLocationName { get; set; }
     public int PersonnelTransferred { get; set; }
 }
 
@@ -28,6 +31,14 @@ public class CreateMergerDto
 {
     public int SurvivingAgencyId { get; set; }
     public List<int> AbsorbedAgencyIds { get; set; } = new();
+    public string? Notes { get; set; }
+    public MergerType MergerType { get; set; } = MergerType.Agency;
+}
+
+public class CreateLocationMergerDto
+{
+    public int AcquiringAgencyId { get; set; }
+    public int AbsorbedLocationId { get; set; }
     public string? Notes { get; set; }
 }
 
@@ -37,6 +48,7 @@ public class MergerPreviewDto
     public int SurvivingAgencyId { get; set; }
     public string? SurvivingAgencyName { get; set; }
     public List<AbsorbedAgencyPreviewDto> AbsorbedAgencies { get; set; } = new();
+    public List<AbsorbedLocationPreviewDto> AbsorbedLocations { get; set; } = new();
     public List<string> Conflicts { get; set; } = new();
     public int TotalPersonnelToTransfer { get; set; }
 }

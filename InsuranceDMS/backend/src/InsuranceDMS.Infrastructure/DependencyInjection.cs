@@ -24,6 +24,7 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IAgencyRepository, AgencyRepository>();
+        services.AddScoped<IAgencyLocationRepository, AgencyLocationRepository>();
         services.AddScoped<IPersonnelRepository, PersonnelRepository>();
         services.AddScoped<IProducerRepository, ProducerRepository>();
         services.AddScoped<ILicenseRepository, LicenseRepository>();

@@ -11,6 +11,7 @@ public class MergerConfiguration : IEntityTypeConfiguration<Merger>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).HasColumnName("MergerId");
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(50);
+        builder.Property(x => x.MergerType).HasConversion<string>().HasMaxLength(50);
         builder.Property(x => x.InitiatedBy).HasMaxLength(100);
         builder.Property(x => x.ExecutedBy).HasMaxLength(100);
         builder.Property(x => x.Notes).HasMaxLength(2000);
@@ -43,6 +44,11 @@ public class MergerParticipantConfiguration : IEntityTypeConfiguration<MergerPar
         builder.HasOne(x => x.AbsorbedAgency)
             .WithMany()
             .HasForeignKey(x => x.AbsorbedAgencyId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.HasOne(x => x.AbsorbedLocation)
+            .WithMany()
+            .HasForeignKey(x => x.AbsorbedLocationId)
             .OnDelete(DeleteBehavior.NoAction);
     }
 }

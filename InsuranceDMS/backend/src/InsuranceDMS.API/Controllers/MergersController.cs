@@ -55,53 +55,76 @@ public class MergersController : ControllerBase
             SurvivingAgencyName = survivingAgency?.AgencyName
         };
 
-        // Get surviving agency's producer NPNs for conflict detection
-        var survivingNPNs = await _db.Personnel
-            .Where(p => p.AgencyId == merger.SurvivingAgencyId && p.PersonnelType == PersonnelType.Producer)
-            .Join(_db.Producers, p => p.Id, pr => pr.PersonnelId, (p, pr) => pr.NPN)
-            .Where(npn => npn != null)
-            .ToListAsync(ct);
-
-        foreach (var participant in merger.Participants)
+        if (merger.MergerType == MergerType.Location)
         {
-            var absorbedPersonnel = await _db.Personnel
-                .Where(p => p.AgencyId == participant.AbsorbedAgencyId && !p.IsDeleted)
-                .CountAsync(ct);
-
-            var absorbedProducers = await _db.Personnel
-                .Where(p => p.AgencyId == participant.AbsorbedAgencyId && p.PersonnelType == PersonnelType.Producer && !p.IsDeleted)
-                .ToListAsync(ct);
-
-            var producerIds = absorbedProducers.Select(p => p.Id).ToList();
-
-            var producers = await _db.Producers
-                .Where(pr => producerIds.Contains(pr.PersonnelId) && !pr.IsDeleted)
-                .ToListAsync(ct);
-
-            var licenseCount = await _db.Licenses.Where(l => producers.Select(p => p.Id).Contains(l.ProducerId)).CountAsync(ct);
-            var apptCount = await _db.CarrierAppointments.Where(a => producers.Select(p => p.Id).Contains(a.ProducerId)).CountAsync(ct);
-
-            var duplicateNPNs = producers
-                .Where(pr => pr.NPN != null && survivingNPNs.Contains(pr.NPN))
-                .Select(pr => pr.NPN!)
-                .ToList();
-
-            preview.AbsorbedAgencies.Add(new AbsorbedAgencyPreviewDto
+            foreach (var participant in merger.Participants.Where(p => p.AbsorbedLocationId.HasValue))
             {
-                AgencyId = participant.AbsorbedAgencyId,
-                AgencyName = participant.AbsorbedAgency.AgencyName,
-                PersonnelCount = absorbedPersonnel,
-                ProducerCount = absorbedProducers.Count,
-                LicenseCount = licenseCount,
-                AppointmentCount = apptCount,
-                DuplicateNPNs = duplicateNPNs
-            });
-
-            if (duplicateNPNs.Count > 0)
-                preview.Conflicts.Add($"Agency {participant.AbsorbedAgency.AgencyName} has {duplicateNPNs.Count} duplicate NPN(s): {string.Join(", ", duplicateNPNs)}");
+                var location = await _db.AgencyLocations
+                    .Include(l => l.Agency)
+                    .Include(l => l.PersonnelLocations)
+                    .FirstOrDefaultAsync(l => l.Id == participant.AbsorbedLocationId, ct);
+                if (location != null)
+                {
+                    preview.AbsorbedLocations.Add(new AbsorbedLocationPreviewDto
+                    {
+                        LocationId = location.Id, LocationName = location.LocationName,
+                        OwningAgencyId = location.AgencyId, OwningAgencyName = location.Agency?.AgencyName ?? "",
+                        PersonnelCount = location.PersonnelLocations?.Count ?? 0
+                    });
+                    preview.TotalPersonnelToTransfer += location.PersonnelLocations?.Count ?? 0;
+                }
+            }
         }
+        else
+        {
+            // Get surviving agency's producer NPNs for conflict detection
+            var survivingNPNs = await _db.Personnel
+                .Where(p => p.AgencyId == merger.SurvivingAgencyId && p.PersonnelType == PersonnelType.Producer)
+                .Join(_db.Producers, p => p.Id, pr => pr.PersonnelId, (p, pr) => pr.NPN)
+                .Where(npn => npn != null)
+                .ToListAsync(ct);
 
-        preview.TotalPersonnelToTransfer = preview.AbsorbedAgencies.Sum(a => a.PersonnelCount);
+            foreach (var participant in merger.Participants)
+            {
+                var absorbedPersonnel = await _db.Personnel
+                    .Where(p => p.AgencyId == participant.AbsorbedAgencyId && !p.IsDeleted)
+                    .CountAsync(ct);
+
+                var absorbedProducers = await _db.Personnel
+                    .Where(p => p.AgencyId == participant.AbsorbedAgencyId && p.PersonnelType == PersonnelType.Producer && !p.IsDeleted)
+                    .ToListAsync(ct);
+
+                var producerIds = absorbedProducers.Select(p => p.Id).ToList();
+
+                var producers = await _db.Producers
+                    .Where(pr => producerIds.Contains(pr.PersonnelId) && !pr.IsDeleted)
+                    .ToListAsync(ct);
+
+                var licenseCount = await _db.Licenses.Where(l => producers.Select(p => p.Id).Contains(l.ProducerId)).CountAsync(ct);
+                var apptCount = await _db.CarrierAppointments.Where(a => producers.Select(p => p.Id).Contains(a.ProducerId)).CountAsync(ct);
+
+                var duplicateNPNs = producers
+                    .Where(pr => pr.NPN != null && survivingNPNs.Contains(pr.NPN))
+                    .Select(pr => pr.NPN!)
+                    .ToList();
+
+                preview.AbsorbedAgencies.Add(new AbsorbedAgencyPreviewDto
+                {
+                    AgencyId = participant.AbsorbedAgencyId,
+                    AgencyName = participant.AbsorbedAgency.AgencyName,
+                    PersonnelCount = absorbedPersonnel,
+                    ProducerCount = absorbedProducers.Count,
+                    LicenseCount = licenseCount,
+                    AppointmentCount = apptCount,
+                    DuplicateNPNs = duplicateNPNs
+                });
+
+                if (duplicateNPNs.Count > 0)
+                    preview.Conflicts.Add($"Agency {participant.AbsorbedAgency.AgencyName} has {duplicateNPNs.Count} duplicate NPN(s): {string.Join(", ", duplicateNPNs)}");
+            }
+
+            preview.TotalPersonnelToTransfer = preview.AbsorbedAgencies.Sum(a => a.PersonnelCount);
+        }
 
         // Update merger status to Previewed
         merger.Status = MergerStatus.Previewed;
@@ -128,6 +151,7 @@ public class MergersController : ControllerBase
         {
             SurvivingAgencyId = dto.SurvivingAgencyId,
             Status = MergerStatus.Draft,
+            MergerType = dto.MergerType,
             InitiatedBy = "system",
             InitiatedAt = DateTime.UtcNow,
             Notes = dto.Notes,
@@ -143,6 +167,46 @@ public class MergersController : ControllerBase
                 AbsorbedAgencyId = absorbedId, PersonnelTransferred = 0, CreatedBy = "system"
             });
         }
+
+        _uow.Mergers.Add(merger);
+        await _uow.SaveChangesAsync(ct);
+
+        var created = await _uow.Mergers.GetByIdAsync(merger.Id, ct);
+        return CreatedAtAction(nameof(GetById), new { id = merger.Id }, ApiResponse<MergerDto>.Success(MapDto(created!)));
+    }
+
+    [HttpPost("location")]
+    public async Task<ActionResult<ApiResponse<MergerDto>>> CreateLocationMerger(
+        [FromBody] CreateLocationMergerDto dto, CancellationToken ct)
+    {
+        var acquiringAgency = await _uow.Agencies.GetByIdAsync(dto.AcquiringAgencyId, ct);
+        if (acquiringAgency == null) return BadRequest(ApiResponse<MergerDto>.Failure("Acquiring agency not found"));
+
+        var location = await _uow.AgencyLocations.GetByIdAsync(dto.AbsorbedLocationId, ct);
+        if (location == null) return BadRequest(ApiResponse<MergerDto>.Failure("Location not found"));
+        if (location.AgencyId == dto.AcquiringAgencyId)
+            return BadRequest(ApiResponse<MergerDto>.Failure("Acquiring agency already owns this location"));
+        if (location.IsMerged)
+            return BadRequest(ApiResponse<MergerDto>.Failure("Location has already been merged"));
+
+        var merger = new Merger
+        {
+            SurvivingAgencyId = dto.AcquiringAgencyId,
+            Status = MergerStatus.Draft,
+            MergerType = MergerType.Location,
+            InitiatedBy = "system",
+            InitiatedAt = DateTime.UtcNow,
+            Notes = dto.Notes,
+            CreatedBy = "system"
+        };
+
+        merger.Participants.Add(new MergerParticipant
+        {
+            AbsorbedAgencyId = location.AgencyId,
+            AbsorbedLocationId = dto.AbsorbedLocationId,
+            PersonnelTransferred = 0,
+            CreatedBy = "system"
+        });
 
         _uow.Mergers.Add(merger);
         await _uow.SaveChangesAsync(ct);
@@ -167,59 +231,13 @@ public class MergersController : ControllerBase
             merger.Status = MergerStatus.Executing;
             var now = DateTime.UtcNow;
 
-            foreach (var participant in merger.Participants)
+            if (merger.MergerType == MergerType.Location)
             {
-                // Transfer all personnel from absorbed agency to surviving agency
-                var personnelToTransfer = await _db.Personnel
-                    .Where(p => p.AgencyId == participant.AbsorbedAgencyId && !p.IsDeleted)
-                    .ToListAsync(ct);
-
-                foreach (var person in personnelToTransfer)
-                {
-                    person.AgencyId = merger.SurvivingAgencyId;
-                    person.ModifiedBy = "merger";
-
-                    _db.EntityLineages.Add(new EntityLineage
-                    {
-                        MergerId = merger.Id,
-                        EntityType = "Personnel",
-                        SourceEntityId = person.Id,
-                        TargetEntityId = person.Id,
-                        SourceAgencyId = participant.AbsorbedAgencyId,
-                        TargetAgencyId = merger.SurvivingAgencyId,
-                        Action = "Transferred",
-                        RecordedAt = now,
-                        RecordedBy = "system",
-                        CreatedBy = "system"
-                    });
-                }
-
-                // Mark absorbed agency as merged
-                var absorbedAgency = await _db.Agencies.FindAsync(new object[] { participant.AbsorbedAgencyId }, ct);
-                if (absorbedAgency != null)
-                {
-                    absorbedAgency.IsMerged = true;
-                    absorbedAgency.MergedIntoId = merger.SurvivingAgencyId;
-                    absorbedAgency.MergedAt = now;
-                    absorbedAgency.IsActive = false;
-                    absorbedAgency.ModifiedBy = "merger";
-
-                    _db.EntityLineages.Add(new EntityLineage
-                    {
-                        MergerId = merger.Id,
-                        EntityType = "Agency",
-                        SourceEntityId = participant.AbsorbedAgencyId,
-                        TargetEntityId = merger.SurvivingAgencyId,
-                        SourceAgencyId = participant.AbsorbedAgencyId,
-                        TargetAgencyId = merger.SurvivingAgencyId,
-                        Action = "Merged",
-                        RecordedAt = now,
-                        RecordedBy = "system",
-                        CreatedBy = "system"
-                    });
-                }
-
-                participant.PersonnelTransferred = personnelToTransfer.Count;
+                await ExecuteLocationMerger(merger, now, ct);
+            }
+            else
+            {
+                await ExecuteAgencyMerger(merger, now, ct);
             }
 
             merger.Status = MergerStatus.Completed;
@@ -237,6 +255,98 @@ public class MergersController : ControllerBase
         {
             await _uow.RollbackTransactionAsync(ct);
             throw;
+        }
+    }
+
+    private async Task ExecuteAgencyMerger(Merger merger, DateTime now, CancellationToken ct)
+    {
+        foreach (var participant in merger.Participants)
+        {
+            var personnelToTransfer = await _db.Personnel
+                .Where(p => p.AgencyId == participant.AbsorbedAgencyId && !p.IsDeleted)
+                .ToListAsync(ct);
+
+            foreach (var person in personnelToTransfer)
+            {
+                person.AgencyId = merger.SurvivingAgencyId;
+                person.ModifiedBy = "merger";
+
+                _db.EntityLineages.Add(new EntityLineage
+                {
+                    MergerId = merger.Id, EntityType = "Personnel",
+                    SourceEntityId = person.Id, TargetEntityId = person.Id,
+                    SourceAgencyId = participant.AbsorbedAgencyId, TargetAgencyId = merger.SurvivingAgencyId,
+                    Action = "Transferred", RecordedAt = now, RecordedBy = "system", CreatedBy = "system"
+                });
+            }
+
+            var absorbedAgency = await _db.Agencies.FindAsync(new object[] { participant.AbsorbedAgencyId }, ct);
+            if (absorbedAgency != null)
+            {
+                absorbedAgency.IsMerged = true;
+                absorbedAgency.MergedIntoId = merger.SurvivingAgencyId;
+                absorbedAgency.MergedAt = now;
+                absorbedAgency.IsActive = false;
+                absorbedAgency.ModifiedBy = "merger";
+
+                _db.EntityLineages.Add(new EntityLineage
+                {
+                    MergerId = merger.Id, EntityType = "Agency",
+                    SourceEntityId = participant.AbsorbedAgencyId, TargetEntityId = merger.SurvivingAgencyId,
+                    SourceAgencyId = participant.AbsorbedAgencyId, TargetAgencyId = merger.SurvivingAgencyId,
+                    Action = "Merged", RecordedAt = now, RecordedBy = "system", CreatedBy = "system"
+                });
+            }
+
+            participant.PersonnelTransferred = personnelToTransfer.Count;
+        }
+    }
+
+    private async Task ExecuteLocationMerger(Merger merger, DateTime now, CancellationToken ct)
+    {
+        foreach (var participant in merger.Participants.Where(p => p.AbsorbedLocationId.HasValue))
+        {
+            var location = await _db.AgencyLocations
+                .Include(l => l.PersonnelLocations)
+                .FirstOrDefaultAsync(l => l.Id == participant.AbsorbedLocationId, ct);
+
+            if (location == null) continue;
+
+            var originalAgencyId = location.AgencyId;
+            location.AgencyId = merger.SurvivingAgencyId;
+            location.IsMerged = true;
+            location.OriginalAgencyId = originalAgencyId;
+            location.AcquiredAt = now;
+            location.ModifiedBy = "merger";
+
+            _db.EntityLineages.Add(new EntityLineage
+            {
+                MergerId = merger.Id, EntityType = "AgencyLocation",
+                SourceEntityId = location.Id, TargetEntityId = location.Id,
+                SourceAgencyId = originalAgencyId, TargetAgencyId = merger.SurvivingAgencyId,
+                Action = "Acquired", RecordedAt = now, RecordedBy = "system", CreatedBy = "system"
+            });
+
+            var personnelIds = location.PersonnelLocations?.Select(pl => pl.PersonnelId).ToList() ?? new();
+            var personnelToTransfer = await _db.Personnel
+                .Where(p => personnelIds.Contains(p.Id) && !p.IsDeleted)
+                .ToListAsync(ct);
+
+            foreach (var person in personnelToTransfer)
+            {
+                person.AgencyId = merger.SurvivingAgencyId;
+                person.ModifiedBy = "merger";
+
+                _db.EntityLineages.Add(new EntityLineage
+                {
+                    MergerId = merger.Id, EntityType = "Personnel",
+                    SourceEntityId = person.Id, TargetEntityId = person.Id,
+                    SourceAgencyId = originalAgencyId, TargetAgencyId = merger.SurvivingAgencyId,
+                    Action = "Transferred", RecordedAt = now, RecordedBy = "system", CreatedBy = "system"
+                });
+            }
+
+            participant.PersonnelTransferred = personnelToTransfer.Count;
         }
     }
 
@@ -259,12 +369,15 @@ public class MergersController : ControllerBase
     {
         Id = m.Id, SurvivingAgencyId = m.SurvivingAgencyId,
         SurvivingAgencyName = m.SurvivingAgency?.AgencyName,
-        Status = m.Status, InitiatedBy = m.InitiatedBy, InitiatedAt = m.InitiatedAt,
+        Status = m.Status, MergerType = m.MergerType,
+        InitiatedBy = m.InitiatedBy, InitiatedAt = m.InitiatedAt,
         ExecutedAt = m.ExecutedAt, ExecutedBy = m.ExecutedBy, Notes = m.Notes,
         Participants = m.Participants.Select(p => new MergerParticipantDto
         {
             Id = p.Id, AbsorbedAgencyId = p.AbsorbedAgencyId,
             AbsorbedAgencyName = p.AbsorbedAgency?.AgencyName,
+            AbsorbedLocationId = p.AbsorbedLocationId,
+            AbsorbedLocationName = p.AbsorbedLocation?.LocationName,
             PersonnelTransferred = p.PersonnelTransferred
         }).ToList()
     };
