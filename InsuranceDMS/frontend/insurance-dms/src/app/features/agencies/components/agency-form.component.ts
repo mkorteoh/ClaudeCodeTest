@@ -62,52 +62,44 @@ import { State, AgencySummary } from '../../../core/models/api.models';
 
         @if (!isEdit()) {
           <div class="card" style="margin-bottom:16px">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-              <div class="card-header" style="margin:0">Initial Location</div>
-              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
-                <input type="checkbox" [checked]="addInitialLocation()" (change)="addInitialLocation.set(!addInitialLocation())" />
-                Add corporate office location now
-              </label>
-            </div>
-            @if (addInitialLocation()) {
-              <div formGroupName="initialLocation">
-                <div class="form-row">
-                  <div class="form-group">
-                    <label class="form-label">Location Name *</label>
-                    <input class="form-control" formControlName="locationName" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Phone</label>
-                    <input class="form-control" formControlName="phone" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Email</label>
-                    <input class="form-control" formControlName="email" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Address Line 1</label>
-                    <input class="form-control" formControlName="addressLine1" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">City</label>
-                    <input class="form-control" formControlName="city" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">State</label>
-                    <select class="form-control" formControlName="stateCode">
-                      <option value="">Select state...</option>
-                      @for (s of states(); track s.stateCode) {
-                        <option [value]="s.stateCode">{{ s.stateName }}</option>
-                      }
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Zip Code</label>
-                    <input class="form-control" formControlName="zipCode" />
-                  </div>
+            <div class="card-header">Corporate Office Location <span style="color:var(--danger)">*</span></div>
+            <div formGroupName="initialLocation">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Location Name *</label>
+                  <input class="form-control" formControlName="locationName" placeholder="e.g. Main Office" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Phone</label>
+                  <input class="form-control" formControlName="phone" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Email</label>
+                  <input class="form-control" formControlName="email" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Address Line 1</label>
+                  <input class="form-control" formControlName="addressLine1" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">City</label>
+                  <input class="form-control" formControlName="city" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">State</label>
+                  <select class="form-control" formControlName="stateCode">
+                    <option value="">Select state...</option>
+                    @for (s of states(); track s.stateCode) {
+                      <option [value]="s.stateCode">{{ s.stateName }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Zip Code</label>
+                  <input class="form-control" formControlName="zipCode" />
                 </div>
               </div>
-            }
+            </div>
           </div>
         }
 
@@ -133,7 +125,6 @@ export class AgencyFormComponent implements OnInit {
   states = signal<State[]>([]);
   agencies = signal<AgencySummary[]>([]);
   editId = signal<number | null>(null);
-  addInitialLocation = signal(false);
 
   form = this.fb.group({
     agencyName: ['', Validators.required],
@@ -143,7 +134,7 @@ export class AgencyFormComponent implements OnInit {
     parentAgencyId: [null as number | null],
     notes: [''],
     initialLocation: this.fb.group({
-      locationName: [''],
+      locationName: ['', Validators.required],
       phone: [''], email: [''], website: [''],
       addressLine1: [''], addressLine2: [''], city: [''],
       stateCode: [''], zipCode: [''], county: ['']
@@ -158,6 +149,7 @@ export class AgencyFormComponent implements OnInit {
     if (id) {
       this.isEdit.set(true);
       this.editId.set(Number(id));
+      this.form.get('initialLocation')?.disable();
       this.api.getAgency(Number(id)).subscribe(r => {
         const a = r.data;
         this.form.patchValue({
@@ -183,7 +175,7 @@ export class AgencyFormComponent implements OnInit {
       notes: val.notes
     };
 
-    if (!this.isEdit() && this.addInitialLocation() && val.initialLocation?.locationName) {
+    if (!this.isEdit() && val.initialLocation?.locationName) {
       body['initialLocation'] = { ...val.initialLocation, isCorporateOffice: true };
     }
 

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder } from '@angular/forms';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
-import { Agency, Personnel, AgencySummary, EntityLineage, AgencyLocation, PersonnelLocation, AgencyTier } from '../../../core/models/api.models';
+import { Agency, Personnel, AgencySummary, EntityLineage, AgencyLocation, PersonnelLocation, AgencyTier, State } from '../../../core/models/api.models';
 
 type Tab = 'profile' | 'personnel' | 'hierarchy' | 'lineage' | 'locations';
 
@@ -93,7 +93,12 @@ type Tab = 'profile' | 'personnel' | 'hierarchy' | 'lineage' | 'locations';
                     </div>
                     <div class="form-group">
                       <label class="form-label">State</label>
-                      <input class="form-control" formControlName="stateCode" maxlength="2" />
+                      <select class="form-control" formControlName="stateCode">
+                        <option value="">Select state...</option>
+                        @for (s of states(); track s.stateCode) {
+                          <option [value]="s.stateCode">{{ s.stateName }}</option>
+                        }
+                      </select>
                     </div>
                     <div class="form-group">
                       <label class="form-label">Zip Code</label>
@@ -254,6 +259,7 @@ export class AgencyDetailComponent implements OnInit {
   private fb = inject(FormBuilder);
 
   agency = signal<Agency | null>(null);
+  states = signal<State[]>([]);
   personnel = signal<Personnel[]>([]);
   hierarchy = signal<AgencySummary[]>([]);
   lineage = signal<EntityLineage[]>([]);
@@ -276,6 +282,7 @@ export class AgencyDetailComponent implements OnInit {
 
   ngOnInit() {
     const id = Number(this.route.snapshot.paramMap.get('id'));
+    this.api.getStates().subscribe(s => this.states.set(s));
     this.api.getAgency(id).subscribe(r => {
       this.agency.set(r.data);
       this.locations.set(r.data.locations ?? []);
