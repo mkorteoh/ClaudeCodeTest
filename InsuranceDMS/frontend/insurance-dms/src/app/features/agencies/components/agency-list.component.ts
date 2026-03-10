@@ -61,7 +61,7 @@ import { AgencySummary, AgencyTier, PaginationMeta } from '../../../core/models/
                     </td>
                     <td>{{ agency.npn || '—' }}</td>
                     <td>{{ tierLabel(agency.agencyTier) }}</td>
-                    <td>{{ agency.stateCode || '—' }}</td>
+                    <td>{{ agency.corporateStateCode || '—' }}</td>
                     <td>
                       @if (agency.isMerged) {
                         <span class="badge badge-merged">Merged</span>
